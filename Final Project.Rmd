@@ -21,6 +21,7 @@ library(corrplot)
 library(PerformanceAnalytics)
 library(lmerTest)
 library(lattice)
+library(ggthemr)
 ```
 
 
@@ -114,6 +115,8 @@ ggplot(data = salary) +
 manager & marketing with PhD degree
 
 ```{r}
+ggthemr("dust")
+
 ggplot(data = salary) + 
   aes(x = Education, y = totalyearlycompensation) + 
   geom_point(aes(color = title_1), size = .6) + 
