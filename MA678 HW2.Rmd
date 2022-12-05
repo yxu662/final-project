@@ -1,0 +1,253 @@
+---
+title: "MA678 Homework 2"
+author: "Yin Xu"
+date: "9/20/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 11.5 
+*Residuals and predictions*: The folder `Pyth` contains outcome $y$ and predictors $x_1$, $x_2$ for 40 data points, with a further 20 points with the predictors but no observed outcome. Save the file to your working directory, then read it into R using `read.table()`.
+
+```{r}
+data_pyth <- "https://raw.githubusercontent.com/avehtari/ROS-Examples/master/"
+pyth <- read.table(paste0(data_pyth, "Pyth/pyth.txt"),header=T, sep=" ")
+```
+
+### (a) 
+Use R to fit a linear regression model predicting $y$ from $x_1$, $x_2$, using the first 40 data points in the file. Summarize the inferences and check the fit of your model.
+
+```{r}
+model_pyth <- lm(y~ x1+x2, data = pyth)
+summary(model_pyth)
+```
+
+### (b) 
+Display the estimated model graphically as in Figure 10.2
+
+```{r}
+library(ggplot2)
+ggplotpyth <- ggplot(model_pyth)
+ggplotpyth + aes(x=x1+x2, y) + geom_point() + ylab("y") + xlab("x1,x2")  + stat_smooth(method ="lm")
+```
+
+### (c) 
+Make a residual plot for this model. Do the assumptions appear to be met?
+
+```{r}
+plot(model_pyth)
+```
+
+
+### (d) 
+Make predictions for the remaining 20 data points in the file. How confident do you feel about these predictions?
+
+```{r}
+model_pyth$coefficients[1] + model_pyth$coefficients[2]*pyth[41:60, 2] + model_pyth$coefficients[3]*pyth[41:60, 3]
+```
+
+
+## 12.5 
+*Logarithmic transformation and regression*: Consider the following regression:
+$$\log(\text{weight})=-3.8+2.1 \log(\text{height})+\text{error,} $$
+with errors that have standard deviation 0.25. Weights are in pounds and heights are in inches.
+
+### (a) 
+Fill in the blanks: Approximately 68% of the people will have weights within a factor of ___-0.228___ and ___0.272___ of their predicted values from the regression.
+```{r}
+#exp(-3.8)+0.25
+#exp(-3.8)-0.25
+```
+
+### (b) 
+Using pen and paper, sketch the regression line and scatterplot of log(weight) versus log(height) that make sense and are consistent with the fitted model. Be sure to label the axes of your graph.
+
+
+## 12.6 
+*Logarithmic transformations*: The folder `Pollution` contains mortality rates and various environmental factors from 60 US metropolitan areas. For this exercise we shall model mortality rate given nitric oxides, sulfur dioxide, and hydrocarbons as inputs. this model is an extreme oversimplication, as it combines all sources of mortality and does not adjust for crucial factors such as age and smoking. We use it to illustrate log transformation in regression.  
+
+```{r}
+data_pollution <- "https://raw.githubusercontent.com/avehtari/ROS-Examples/master/"
+pollution <- read.csv (paste0(data_pollution, "Pollution/data/pollution.csv"), header = T, sep = ",")
+summary(pollution)
+```
+
+### (a) 
+Create a scatterplot of mortality rate versus level of nitric oxides. Do you think linear regression will fit these data well? Fit the regression and evaluate a residual plot from the regression.
+
+```{r}
+plot(pollution$nox, pollution$mort)
+abline(lm(mort ~ nox, data = pollution))
+plot(lm(mort ~ nox, data = pollution))
+```
+
+### (b) 
+Find an appropriate transformation that will result in data more appropriate for linear regression. Fit a regression to the transformed data and evaluate the new residual plot.
+
+```{r}
+#MORT Total age-adjusted mortality rate per 100,000
+pollution$mort <- pollution$mort/100000
+
+#regression coefficients are typically less than 1
+lm1 <- lm(log(mort) ~ log(nox), data = pollution)
+summary(lm1)
+
+library(ggplot2)
+ggplot(data = pollution, aes(x = log(nox), y = log(mort))) + geom_point() + stat_smooth(method="lm")
+
+plot(lm1)
+```
+
+### (c) 
+Interpret the slope coefficient from the model you chose in (b)
+
+```{r}
+coef(lm1)
+exp(-4.706) #The average mortality rate is about 0.90%
+#For each 1% difference in nitric oxides, the predicted difference in mortality rate is 0.0159
+```
+
+### (d) 
+Now fit a model predicting mortality rate using levels of nitric oxides, sulfur dioxide, and hydrocarbons as inputs. Use appropriate transformation when helpful. Plot the fitted regression model and interpret the coefficients.
+
+```{r}
+lm2 <- lm(log(mort) ~ log(nox)+log(so2)+log(hc), data = pollution)
+summary(lm2)
+plot(lm2)
+
+exp(-4.686177)
+exp(0.059837)
+exp(0.014309)
+exp(-0.060812)
+#The mortality rate for an individual exposed to average of nitric oxides, sulfur dioxide, and hydrocarbons is about 0.92%
+#For 1 standard deviation difference for nitric oxides, the mortality rate increase 6.17%
+#For 1 standard deviation difference for sulfur dioxide, the mortality rate increase 1.44%
+#For 1 standard deviation difference for hydrocarbons, the mortality rate decrease 6.90%
+```
+
+### (e) 
+Cross validate: fit the model you chose above to the first half of the data and then predict for the second half. You used all the data to construct the model in (d), so this is not really cross validation, but it gives a sense of how the steps of cross validation can be implemented.
+
+```{r}
+test <- pollution[((nrow(pollution)/2)+1):nrow(pollution), ]
+
+predictions <- predict(lm2, test)
+
+plot(exp(predictions), test$mort)
+abline(a=0, b=1)
+
+sqrt(mean((test$mort-exp(predictions))^2))
+```
+
+## 12.7 
+*Cross validation comparison of models with different transformations of outcomes*: when we compare models with transformed continuous outcomes, we must take into account how the nonlinear transformation warps the continuous outcomes. Follow the procedure used to compare models for the mesquite bushes example on page 202.
+
+```{r}
+data_earnings <- "https://raw.githubusercontent.com/avehtari/ROS-Examples/master/"
+earnings <- read.csv (paste0(data_earnings, "Earnings/data/earnings.csv"), header = T, sep = ",")
+summary(earnings)
+```
+
+
+### (a) 
+Compare models for earnings and for log(earnings) given height and sex as shown in page 84 and 192. Use `earnk` and `log(earnk)` as outcomes.
+
+```{r}
+#page 84
+earnings$earnk <- earnings$earn/1000
+fit_2 <- lm (earnk ~ height + male, data = earnings)
+print(fit_2)
+
+#page 192
+logmodel_2 <- lm (log(earnk) ~ height + male, data = earnings, subset = earn > 0)
+print(logmodel_2)
+```
+
+### (b) 
+Compare models from other exercises in this chapter.
+
+
+## 12.8 
+*Log-log transformations*: Suppose that, for a certain population of animals, we can predict log weight from log height as follows:  
+
+* An animal that is 50 centimeters tall is predicted to weigh 10 kg.
+
+* Every increase of 1% in height corresponds to a predicted increase of 2% in weight.
+
+* The weights of approximately 95% of the animals fall within a factor of 1.1 of predicted values.
+
+### (a) 
+Give the equation of the regression line and the residual standard deviation of the regression.
+
+$$\log(\text{weight})=2\log(\text{height})+(\log(10)-2\log(50))$$
+$$\log(\text{weight})=2\log(\text{height}) - 5.5$$
+
+### (b) 
+Suppose the standard deviation of log weights is 20% in this population. What, then, is the $R^{2}$ of the regression model described here?  
+
+$$R^{2} = 1 - (\log(1.1)/2)/0.2 = 0.7617$$
+
+## 12.9 
+*Linear and logarithmic transformations*: For a study of congressional elections, you would like a measure of the relative amount of money raised by each of the two major-party candidates in each district. Suppose that you know the amount of money raised by each candidate; label these dollar values $D_i$ and $R_i$. You would like to combine these into a single variable that can be included as an input variable into a model predicting vote share for the Democrats. Discuss the advantages and disadvantages of the following measures:  
+
+### (a) 
+The simple difference, $D_i - R_i$
+
+This can clearly shows that the relationship between the vote share and the difference.
+
+### (b) 
+The ratio, $D_i / R_i$
+
+This can also shows the relationship between vote share and the difference especially the ratio, but the $R_i$ should not be 0.
+
+### (c) 
+The difference on the logarithmic scale, $\log D_i - \log R_i$   
+
+This shows clearly the relationship between the log of two values.
+
+### (d) 
+The relative proportion, $D_{i}/(D_{i}+R_{i})$. 
+
+This also shows the ratio, but $D_i$ + $R_i$ should not be 0.
+
+
+## 12.11
+*Elasticity*: An economist runs a regression examining the relations between the average price of cigarettes, $P$, and the quantity purchased, $Q$, across a large sample of counties in the United  States, assuming the functional form, $$\log Q=\alpha+\beta \log P$$. Suppose the estimate for $\beta$ is 0.3.  Interpret this coefficient. 
+
+$$Q = e^\alpha P^{0.3}$$
+The alpha and beta can help describe the relationship between the average price of cigarettes and the quantity purchased.
+
+
+## 12.13
+*Building regression models*: Return to the teaching evaluations data from Exercise 10.6. Fit regression models predicting evaluations given many of the inputs in the dataset. Consider interactions, combinations of predictors, and transformations, as appropriate. Consider several models, discuss in detail the final model that you choose, and also explain why you chose it rather than the others you had considered. 
+
+```{r}
+data_beauty <- "https://raw.githubusercontent.com/avehtari/ROS-Examples/master/"
+beauty <- read.csv(paste0(data_beauty,"Beauty/data/beauty.csv"), header=T)
+head(beauty)
+```
+
+```{r}
+lm12.13a <- lm(eval~female+beauty+female*beauty, data=beauty)
+summary(lm12.13a)
+lm12.13b <- lm(log(eval)~female+beauty+female*beauty, data=beauty)
+summary(lm12.13b)
+
+plot(lm12.13a, which = 1)
+plot(lm12.13b, which = 1)
+#I will chose the model with log transformation as the final model, because this model has the more constant residuals.
+```
+
+
+## 12.14
+Prediction from a fitted regression: Consider one of the fitted models for mesquite leaves, for example `fit_4`, in Section 12.6. Suppose you wish to use this model to make inferences about the average mesquite yield in a new set of trees whose predictors are in data frame called  new_trees. Give R code to obtain an estimate and standard error for this population average. You do not need to make the prediction; just give the code. 
+
+```{r}
+data_mesquite <- "https://raw.githubusercontent.com/avehtari/ROS-Examples/master/"
+mesquite <- read.csv (paste0(data_mesquite, "Mesquite/data/mesquite.dat"), header = T, sep = "")
+
+lm(formula = weight ~ diam1 + diam2 + canopy_height + total_height + density + group, data=mesquite)
+```

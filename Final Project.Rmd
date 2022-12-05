@@ -1,0 +1,271 @@
+---
+title: "MA678 Final Project"
+author: "Yin Xu"
+date: "2022-11-30"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(Matrix)
+library(lme4)
+library(pbkrtest)
+library(tidyr)
+library(dplyr)
+library(corrplot)
+library(PerformanceAnalytics)
+library(lmerTest)
+library(lattice)
+```
+
+
+## Abstract
+In most universities, AI, Statistics and Data Science are some of the most popular majors, plenty of students choose these majors since if they have the Data Science background, they may find jobs easily after university. According to this issue, there is a dataset from data science jobs shows that the titles, locations and other variables which effect the salaries. To figure out this problem, I build a multilevel model with group `title` and `race` The report includes 4 main parts: introduction, method, result and discussion.
+
+## Introduction
+As we always know, the job titles, locations of companies, experience level and other factors usually influence the amount of a person's salary. However, after COVID-19 came into everyone's life, some of jobs became remote to avoid direct contact, therefore, remote jobs may become one factor which influence the salaries. Remote work may decrease the salaries, because the efficiency will be reduced; sometimes, because of the extension of the work hour, the salaries will be increased. Besides, some small companies prefer to attract talents with high wages; at the same time, large companies have complete talents and do not care about the whereabouts of employees with low salaries.
+
+Therefore, multilevel model is needed to discover the effect of the factors. I divide the factors to two group: fixed effect factors(e.g. experience level, job title, company size) and random effect factors(e.g. salary currency).
+
+\newpage
+
+## Method
+
+### Data
+
+The data is from kaggle open dataset(https://www.kaggle.com/datasets/jackogozaly/data-science-and-stem-salaries).
+
+This data covers observations salaries from 2020 to 2022, but there is too little data for 2020 and 2021 to discuss, I choose 2022 as the main year of the observation. 
+
+```{r}
+salaries <- read.csv("Levels_Fyi_Salary_Data.csv")
+salary <- salaries %>% drop_na()
+```
+
+
+```{r, warning=FALSE}
+salary$title_1 <- gsub(".+\\s(.+)$", "\\1", salary$title)
+salary$state <- gsub(".+\\s(.+)$", "\\1", salary$location)
+#drop
+
+# only USA & <= 1,000,000
+salary <- salary %>% 
+  filter(!grepl("[a-z]", state)) %>%
+  filter(totalyearlycompensation <= 1000000) %>%
+  separate(timestamp, c("timestamp", "time"), sep = " (?=[^ ]+$)")
+
+salary$timestamp <- as.Date(salary$timestamp, "%m/%d/%Y")
+
+salary <- salary[-c(4, 10, 15, 17:28)]
+
+salary$Education[salary$Education == "Highschool"] <- 0
+salary$Education[salary$Education == "Some College"] <- 1
+salary$Education[salary$Education == "Bachelor's Degree"] <- 2
+salary$Education[salary$Education == "Master's Degree"] <- 3
+salary$Education[salary$Education == "PhD"] <- 4
+salary$Education <- as.numeric(salary$Education)
+```
+
+# Year of experience
+# experience yrs vs job title (y)
+# experience yrs vs race
+
+```{r}
+ggplot(data = salary) + 
+  aes(x = yearsofexperience, y = totalyearlycompensation) + 
+  geom_point(aes(color = title_1), size = .6) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Year of Experience", x = "Experience Years", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = yearsofexperience, y = totalyearlycompensation) + 
+  geom_point(aes(color = Race), size = .6) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Year of Experience", x = "Experience Years", y = "Total Yearly Compensation")
+```
+
+# Years at the Company
+# yrs at company vs job title (y)
+# yrs at company vs race
+
+```{r}
+ggplot(data = salary) + 
+  aes(x = yearsatcompany, y = totalyearlycompensation) + 
+  geom_point(aes(color = title_1), size = .6) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Year at the Company", x = "Years at the Company", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = yearsatcompany, y = totalyearlycompensation) + 
+  geom_point(aes(color = Race), size = .6) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Year at the Company", x = "Years at the Company", y = "Total Yearly Compensation")
+```
+
+# Education
+# education vs job title (y)
+# education vs race
+
+manager & marketing with PhD degree
+
+```{r}
+ggplot(data = salary) + 
+  aes(x = Education, y = totalyearlycompensation) + 
+  geom_point(aes(color = title_1), size = .6) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Education", x = "Educayion", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = Education, y = totalyearlycompensation) + 
+  geom_point(aes(color = Race), size = .6) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Education", x = "Educayion", y = "Total Yearly Compensation")
+```
+
+# Location
+# location vs job title (y)
+# location vs race
+
+```{r}
+ggplot(data = salary) + 
+  aes(x = cityid, y = totalyearlycompensation) + 
+  geom_point(aes(color = title_1), size = .6) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Location", x = "City in USA", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = cityid, y = totalyearlycompensation) + 
+  geom_point(aes(color = Race), size = .6) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Location", x = "City in USA", y = "Total Yearly Compensation")
+```
+
+# Stock Grant Value
+# stock grant value vs job title 
+# stock grant value vs race
+
+```{r}
+ggplot(data = salary) + 
+  aes(x = stockgrantvalue, y = totalyearlycompensation) + 
+  geom_point(aes(color = title_1), size = .6) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Stock", x = "Stock Grant Value", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = stockgrantvalue, y = totalyearlycompensation) + 
+  geom_point(aes(color = Race), size = .6) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Stock", x = "Stock Grant Value", y = "Total Yearly Compensation")
+```
+
+# Bonus
+# bonus vs job title
+# stock grant value vs race
+
+```{r}
+ggplot(data = salary) + 
+  aes(x = bonus, y = totalyearlycompensation) + 
+  geom_point(aes(color = title_1), size = .6) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Bonus", x = "Bonus", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = bonus, y = totalyearlycompensation) + 
+  geom_point(aes(color = Race), size = .6) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Bonus", x = "Bonus", y = "Total Yearly Compensation")
+```
+
+# Gender
+# gender vs job title
+# gender vs race
+
+```{r, warning=FALSE}
+ggplot(data = salary) + 
+  aes(x = gender, y = totalyearlycompensation) + 
+  geom_violin(aes(color = title_1), size = .6) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Gender", x = "Gender", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = gender, y = totalyearlycompensation) + 
+  geom_violin(aes(color = Race), size = .6) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Gender", x = "Gender", y = "Total Yearly Compensation")
+```
+
+
+# Time
+# time vs job title
+# time vs race
+
+```{r}
+ggplot(data = salary) + 
+  aes(x = timestamp, y = totalyearlycompensation) + 
+  geom_point(aes(color = title_1), size = .6) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Time", x = "Time stamp", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = timestamp, y = totalyearlycompensation) + 
+  geom_point(aes(color = Race), size = .6) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Time", x = "Time stamp", y = "Total Yearly Compensation")
+```
+
+
+
+## Correlation
+
+```{r, echo=FALSE}
+cor <- salary[, c(7:11, 13)]
+cor$yearsofexperience <- log(salary$yearsofexperience+1)
+cor$yearsatcompany <- log(salary$yearsatcompany+1)
+cor$basesalary <- log(salary$basesalary+1)
+cor$stockgrantvalue <- log(salary$stockgrantvalue+1)
+cor$bonus <- log(salary$bonus+1)
+cor$education <- salary$Education
+cor$cityid <- log(salary$cityid+1)
+cor$title <- salary$title_1
+cor$race <- salary$Race
+cor$salary <- log(salary$totalyearlycompensation + 1)
+```
+
+```{r, echo=FALSE, warning=FALSE, fig.cap="Correlation Matrix"}
+chart.Correlation(cor[,1:6], histogram=TRUE, pch="+")
+```
+
+
+## Multilevel Model
+
+```{r, eval=FALSE, warning=FALSE}
+model <- lmer(salary ~ yearsofexperience + yearsatcompany + cityid + education 
+              + (1 + yearsofexperience + education | title) 
+              + (1 + cityid | race), 
+              data = cor, REML = F)
+summary(model)
+anova(model)
+```
+
+## Model checking
+```{r}
+qqmath(model)
+ranef(model)
+```
+
+\newpage
+
+
+## Result
+
+
+
+\newpage
+
+## Appendix
+
