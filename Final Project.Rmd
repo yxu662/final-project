@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(ggthemes)
 library(ggtext)
+library(cowplot)
 library(Matrix)
 library(lme4)
 library(pbkrtest)
@@ -111,55 +112,73 @@ After data cleaning, the following is the chart of variables which are used in t
 
 After data cleaning, I got 16937 observations and 14 variables, and I set `total yearly compensation` as the output of the analysis; the other 13 variables will be discussed in following analysis to know if they influence the salaries of these Data Science jobs. To figure out the relationships between the variables and build a model, I select `title` and `race` as two groups.
 
-```{r, echo=FALSE, fig.height=2.5, fig.width=4, fig.cap="Salary vs Years at Company"}
+```{r, echo=FALSE, fig.height=3, fig.width=10, fig.cap="Salary vs Years at Company"}
 # Years at the Company
-ggplot(data = salary) + 
+p1 <- ggplot(data = salary) + 
   aes(x = yearsatcompany, y = totalyearlycompensation) + 
   geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
   ggtitle("<span style='font-size: 10pt;'>(a) Salary vs Year at the Company</font>") +
-  theme(plot.title = element_markdown()) +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
   labs(x = "Years at the Company", y = "Total Yearly Compensation") 
 
-ggplot(data = salary) + 
+p2 <- ggplot(data = salary) + 
   aes(x = yearsatcompany, y = totalyearlycompensation) + 
   geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "(b) Salary vs Year at the Company", x = "Years at the Company", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>(b) Salary vs Year at the Company</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) + 
+  labs(x = "Years at the Company", y = "Total Yearly Compensation")
+
+plot_grid(p1, p2, labels = NULL)
 ```
 
 These two graphs show the relationship between `total yearly compensation` and `years at company` which is varied by `title` and `race`. Both of the graphs show that as the years at the company increasing, the salaries increase, and the slopes are lightly different. By the first graph, the interprets of the different titles are different, which means that the very first salary after getting the Data Science jobs depends on the title, but not race(b). Besides, when I use `year of experience`, `location`, `timestamp`, `stock grant value` and `bonus` to compare the relationships with `total yearly compensation`, they showed the similar trend.
 
-```{r, echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Years at Company"}
+```{r, echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Years at Company"}
 # Education
 ggplot(data = salary) + 
   aes(x = Education, y = totalyearlycompensation) + 
   geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "(a) Salary vs Education", x = "Education", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>(a) Salary vs Education</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Education", y = "Total Yearly Compensation")
 
 ggplot(data = salary) + 
   aes(x = Education, y = totalyearlycompensation) + 
   geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "(b) Salary vs Education", x = "Education", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>(b) Salary vs Education</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Education", y = "Total Yearly Compensation")
 ```
 
 According to the salary and education graphs, as the education background increasing, the slopes of most titles are increasing, there only "Recruiter" line shows the different trend. Additionally, "Analyst" and "Consultant" have no High School background, and most engineers have bachelor or master background. Overall, `title` influences `Education`, however, there is no difference of education background among diverse races.
 
-```{r, echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Gender"} 
+```{r, echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Gender"} 
 # Gender
 ggplot(data = salary) + 
   aes(x = gender, y = totalyearlycompensation) + 
   geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
-  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "(a) Salary vs Gender", x = "Gender", y = "Total Yearly Compensation")
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') +
+  ggtitle("<span style='font-size: 10pt;'>(a) Salary vs Gender</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Gender", y = "Total Yearly Compensation")
 
 ggplot(data = salary) + 
   aes(x = gender, y = totalyearlycompensation) + 
   geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "(b) Salary vs Gender", x = "Gender", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>(b) Salary vs Gender</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Gender", y = "Total Yearly Compensation")
 ```
 
 
@@ -218,79 +237,109 @@ ranef(model_1)
 
 ## Appendix
 
-```{r, echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Experience Years"}
+```{r, echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Experience Years"}
 # Year of experience
 ggplot(data = salary) + 
   aes(x = yearsofexperience, y = totalyearlycompensation) + 
   geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Year of Experience", x = "Experience Years", y = "Total Yearly Compensation") 
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Year of Experience</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Experience Years", y = "Total Yearly Compensation") 
 
 ggplot(data = salary) + 
   aes(x = yearsofexperience, y = totalyearlycompensation) + 
   geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Year of Experience", x = "Experience Years", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Year of Experience</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Experience Years", y = "Total Yearly Compensation")
 ```
 
-```{r echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Location"}
+```{r echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Location"}
 # Location
 ggplot(data = salary) + 
   aes(x = cityid, y = totalyearlycompensation) + 
   geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "(a) Salary vs Location", x = "City in USA", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Location</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "City in USA", y = "Total Yearly Compensation")
 
 ggplot(data = salary) + 
   aes(x = cityid, y = totalyearlycompensation) + 
   geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "(b) Salary vs Location", x = "City in USA", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Location</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "City in USA", y = "Total Yearly Compensation")
 ```
 
-```{r echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Time"}
+```{r echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Time"}
 # Time stamp
 ggplot(data = salary) + 
   aes(x = timestamp, y = totalyearlycompensation) + 
   geom_point(aes(color = title_1), size = .6) + 
-  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Time", x = "Time stamp", y = "Total Yearly Compensation")
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') +
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Time</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Time stamp", y = "Total Yearly Compensation")
 
 ggplot(data = salary) + 
   aes(x = timestamp, y = totalyearlycompensation) + 
   geom_point(aes(color = Race), size = .6) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Time", x = "Time stamp", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Time</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Time stamp", y = "Total Yearly Compensation")
 ```
 
-```{r echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Stock"}
+```{r echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Stock"}
 # Stock Grant Value
 ggplot(data = salary) + 
   aes(x = stockgrantvalue, y = totalyearlycompensation) + 
   geom_point(aes(color = title_1), size = .6) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Stock", x = "Stock Grant Value", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Stock</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Stock Grant Value", y = "Total Yearly Compensation")
 
 ggplot(data = salary) + 
   aes(x = stockgrantvalue, y = totalyearlycompensation) + 
   geom_point(aes(color = Race), size = .6) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Stock", x = "Stock Grant Value", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Stock</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Stock Grant Value", y = "Total Yearly Compensation")
 ```
 
-```{r echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Bonus"}
+```{r echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Bonus"}
 # Bonus
 ggplot(data = salary) + 
   aes(x = bonus, y = totalyearlycompensation) + 
   geom_point(aes(color = title_1), size = .6, alpha = 0.5) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Bonus", x = "Bonus", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Bonus</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Bonus", y = "Total Yearly Compensation")
 
 ggplot(data = salary) + 
   aes(x = bonus, y = totalyearlycompensation) + 
   geom_point(aes(color = Race), size = .6, alpha = 0.5) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Bonus", x = "Bonus", y = "Total Yearly Compensation")
+  ggtitle("<span style='font-size: 10pt;'>Salary vs Bonus</font>") +
+  theme(plot.title = element_markdown(), 
+        text = element_text(size = 8)) +
+  labs(x = "Bonus", y = "Total Yearly Compensation")
 ```
 
 
