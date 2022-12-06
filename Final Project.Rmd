@@ -91,7 +91,7 @@ After data cleaning, the following is the chart of variables which are used in t
 `title`                   : Job title.
 `location`                : Job location.
 `cityid`                  : City ID of the location.
-`totalyearlycompensation` : Total yearly compensation which is added by `basesalary`, `stockgrantvalue`and                                `bonus`.
+`totalyearlycompensation` : Total yearly compensation which is added by `basesalary`, `stockgrantvalue`and `bonus`.
 `basesalary`              : Base salary of the year.
 `stockgrantvalue`         : Stock grant value.
 `bonus`                   : Bonus of the year.
