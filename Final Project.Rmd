@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, warning=FALSE, message=FALSE, include=FALSE}
 library(ggplot2)
 library(ggthemes)
+library(ggtext)
 library(Matrix)
 library(lme4)
 library(pbkrtest)
@@ -51,12 +52,12 @@ Secondly, there are 15 unique titles in `title`, but I only want to keep the pos
 
 Additionally, in this data, `gender` and `Education` are two variables in characters, to make my exploratory data analysis more reasonable and easy to read, I changed `gender` to numeric values 0, 1, 2 which means other, female and male; for `Education`, 0 means "High School", 1 means "Some College", 2 means "Bachelor's Degree", 3 means "Master's Degree", and 4 means "PhD".
 
-```{r}
+```{r include=FALSE}
 salaries <- read.csv("Levels_Fyi_Salary_Data.csv")
 salary <- salaries %>% drop_na()
 ```
 
-```{r, warning=FALSE}
+```{r, warning=FALSE, include=FALSE}
 #unique(salary$title)
 salary$title_1 <- gsub(".+\\s(.+)$", "\\1", salary$title)
 salary$state <- gsub(".+\\s(.+)$", "\\1", salary$location)
@@ -86,118 +87,79 @@ salary$gender <- as.numeric(salary$gender)
 ```
 
 After data cleaning, the following is the chart of variables which are used in this report:
-`timestamp`               : When the data was recorded.
-`company`                 : Company names.
-`title`                   : Job title.
-`location`                : Job location.
-`cityid`                  : City ID of the location.
-`totalyearlycompensation` : Total yearly compensation which is added by `basesalary`, `stockgrantvalue`and `bonus`.
-`basesalary`              : Base salary of the year.
-`stockgrantvalue`         : Stock grant value.
-`bonus`                   : Bonus of the year.
-`yearsofexperience`       : Year of experience of Data Science jobs.
-`yearsatcompany`          : Year of experience at said company.
-`gender`                  : Gender of the observations.
-`race`                    : Race of the observations.
-`Education`               : Education background.
+
+| Variables Names           | Explanation                                                                             |
+| :--:                      | :-----                                                                                  |
+| `timestamp`               | When the data was recorded.                                                             |
+| `company`                 | Company names.                                                                          |
+| `title`                   | Job title.                                                                              |
+| `location`                | Job location.                                                                           |
+| `cityid`                  | City ID of the location.                                                                |
+| `totalyearlycompensation` | Total yearly compensation which is added by `basesalary`, `stockgrantvalue`and `bonus`. |
+| `basesalary`              | Base salary of the year.                                                                |
+| `stockgrantvalue`         | Stock grant value.                                                                      |
+| `bonus`                   | Bonus of the year.                                                                      |
+| `yearsofexperience`       | Year of experience of Data Science jobs.                                                |
+| `yearsatcompany`          | Year of experience at said company.                                                     |
+| `gender`                  | Gender of the observations.                                                             |
+| `race`                    | Race of the observations.                                                               |
+| `Education`               | Education background.                                                                   |
 
 \newpage
 
-###Exploratory Data Analysis
+### Exploratory Data Analysis
 
-By the data after cleaning, I got 16937 observations and 14 variables, and I set `total yearly compensation` as the output of the analysis; the other 13 variables will be discussed in following analysis to know if they influence the salaries of these Data Science jobs. To figure out the relationships between the variables and build a model, I select `title` and `race` as two groups.
+After data cleaning, I got 16937 observations and 14 variables, and I set `total yearly compensation` as the output of the analysis; the other 13 variables will be discussed in following analysis to know if they influence the salaries of these Data Science jobs. To figure out the relationships between the variables and build a model, I select `title` and `race` as two groups.
 
-# Year of experience
-# experience yrs vs job title (y)
-# experience yrs vs race
-
-```{r}
-ggplot(data = salary) + 
-  aes(x = yearsofexperience, y = totalyearlycompensation) + 
-  geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
-  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Year of Experience", x = "Experience Years", y = "Total Yearly Compensation") 
-
-ggplot(data = salary) + 
-  aes(x = yearsofexperience, y = totalyearlycompensation) + 
-  geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
-  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Year of Experience", x = "Experience Years", y = "Total Yearly Compensation")
-```
-
+```{r, echo=FALSE, fig.height=2.5, fig.width=4, fig.cap="Salary vs Years at Company"}
 # Years at the Company
-# yrs at company vs job title (y)
-# yrs at company vs race
-
-```{r}
 ggplot(data = salary) + 
   aes(x = yearsatcompany, y = totalyearlycompensation) + 
   geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Year at the Company", x = "Years at the Company", y = "Total Yearly Compensation") 
+  ggtitle("<span style='font-size: 10pt;'>(a) Salary vs Year at the Company</font>") +
+  theme(plot.title = element_markdown()) +
+  labs(x = "Years at the Company", y = "Total Yearly Compensation") 
 
 ggplot(data = salary) + 
   aes(x = yearsatcompany, y = totalyearlycompensation) + 
   geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Year at the Company", x = "Years at the Company", y = "Total Yearly Compensation")
+  labs(title = "(b) Salary vs Year at the Company", x = "Years at the Company", y = "Total Yearly Compensation")
 ```
 
+These two graphs show the relationship between `total yearly compensation` and `years at company` which is varied by `title` and `race`. Both of the graphs show that as the years at the company increasing, the salaries increase, and the slopes are lightly different. By the first graph, the interprets of the different titles are different, which means that the very first salary after getting the Data Science jobs depends on the title, but not race(b). Besides, when I use `year of experience`, `location`, `timestamp`, `stock grant value` and `bonus` to compare the relationships with `total yearly compensation`, they showed the similar trend.
+
+```{r, echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Years at Company"}
 # Education
-# education vs job title (y)
-# education vs race
-
-manager & marketing with PhD degree
-
-```{r}
 ggplot(data = salary) + 
   aes(x = Education, y = totalyearlycompensation) + 
   geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Education", x = "Education", y = "Total Yearly Compensation")
+  labs(title = "(a) Salary vs Education", x = "Education", y = "Total Yearly Compensation")
 
 ggplot(data = salary) + 
   aes(x = Education, y = totalyearlycompensation) + 
   geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Education", x = "Education", y = "Total Yearly Compensation")
+  labs(title = "(b) Salary vs Education", x = "Education", y = "Total Yearly Compensation")
 ```
 
-# Location
-# location vs job title (y)
-# location vs race
+According to the salary and education graphs, as the education background increasing, the slopes of most titles are increasing, there only "Recruiter" line shows the different trend. Additionally, "Analyst" and "Consultant" have no High School background, and most engineers have bachelor or master background. Overall, `title` influences `Education`, however, there is no difference of education background among diverse races.
 
-```{r}
-ggplot(data = salary) + 
-  aes(x = cityid, y = totalyearlycompensation) + 
-  geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
-  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Location", x = "City in USA", y = "Total Yearly Compensation")
-
-ggplot(data = salary) + 
-  aes(x = cityid, y = totalyearlycompensation) + 
-  geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
-  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Location", x = "City in USA", y = "Total Yearly Compensation")
-```
-
-
+```{r, echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Gender"} 
 # Gender
-# gender vs job title
-# gender vs race (y)
-
-```{r, warning=FALSE}
 ggplot(data = salary) + 
   aes(x = gender, y = totalyearlycompensation) + 
   geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Gender", x = "Gender", y = "Total Yearly Compensation")
+  labs(title = "(a) Salary vs Gender", x = "Gender", y = "Total Yearly Compensation")
 
 ggplot(data = salary) + 
   aes(x = gender, y = totalyearlycompensation) + 
   geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
   geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "Salary vs Gender", x = "Gender", y = "Total Yearly Compensation")
+  labs(title = "(b) Salary vs Gender", x = "Gender", y = "Total Yearly Compensation")
 ```
 
 
@@ -227,19 +189,22 @@ chart.Correlation(cor[,1:7], histogram=TRUE, pch="+")
 
 ## Multilevel Model
 
-```{r, eval=FALSE, warning=FALSE}
-model <- lmer(salary ~ yearsofexperience + yearsatcompany + cityid + education + gender
+```{r, warning=FALSE}
+model_1 <- lmer(salary ~ yearsofexperience + yearsatcompany + cityid + education + gender
               + (1 + yearsofexperience + yearsatcompany + cityid + education | title) 
               + (1 | race), 
               data = cor, REML = F)
-summary(model)
-anova(model)
+```
+
+```{r include=FALSE}
+summary(model_1)
+anova(model_1)
 ```
 
 ## Model checking
-```{r}
-qqmath(model)
-ranef(model)
+```{r include=FALSE}
+qqmath(model_1)
+ranef(model_1)
 ```
 
 \newpage
@@ -253,11 +218,38 @@ ranef(model)
 
 ## Appendix
 
-# Time
-# time vs job title
-# time vs race
+```{r, echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Experience Years"}
+# Year of experience
+ggplot(data = salary) + 
+  aes(x = yearsofexperience, y = totalyearlycompensation) + 
+  geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Year of Experience", x = "Experience Years", y = "Total Yearly Compensation") 
 
-```{r include=FALSE}
+ggplot(data = salary) + 
+  aes(x = yearsofexperience, y = totalyearlycompensation) + 
+  geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "Salary vs Year of Experience", x = "Experience Years", y = "Total Yearly Compensation")
+```
+
+```{r echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Location"}
+# Location
+ggplot(data = salary) + 
+  aes(x = cityid, y = totalyearlycompensation) + 
+  geom_jitter(aes(color = title_1), size = .6, alpha = 0.1) + 
+  geom_smooth(aes(color = title_1), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "(a) Salary vs Location", x = "City in USA", y = "Total Yearly Compensation")
+
+ggplot(data = salary) + 
+  aes(x = cityid, y = totalyearlycompensation) + 
+  geom_jitter(aes(color = Race), size = .6, alpha = 0.1) + 
+  geom_smooth(aes(color = Race), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "(b) Salary vs Location", x = "City in USA", y = "Total Yearly Compensation")
+```
+
+```{r echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Time"}
+# Time stamp
 ggplot(data = salary) + 
   aes(x = timestamp, y = totalyearlycompensation) + 
   geom_point(aes(color = title_1), size = .6) + 
@@ -271,12 +263,8 @@ ggplot(data = salary) +
   labs(title = "Salary vs Time", x = "Time stamp", y = "Total Yearly Compensation")
 ```
 
-
+```{r echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Stock"}
 # Stock Grant Value
-# stock grant value vs job title 
-# stock grant value vs race
-
-```{r include=FALSE}
 ggplot(data = salary) + 
   aes(x = stockgrantvalue, y = totalyearlycompensation) + 
   geom_point(aes(color = title_1), size = .6) + 
@@ -290,11 +278,8 @@ ggplot(data = salary) +
   labs(title = "Salary vs Stock", x = "Stock Grant Value", y = "Total Yearly Compensation")
 ```
 
+```{r echo=FALSE, fig.height=3, fig.width=4, fig.cap="Salary vs Bonus"}
 # Bonus
-# bonus vs job title
-# stock grant value vs race
-
-```{r}
 ggplot(data = salary) + 
   aes(x = bonus, y = totalyearlycompensation) + 
   geom_point(aes(color = title_1), size = .6, alpha = 0.5) + 
