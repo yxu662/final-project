@@ -92,7 +92,7 @@ salary$gender <- as.numeric(salary$gender)
 After data cleaning, the following is the chart of variables which are used in this report:
 
 | Variables Names           | Explanation                                                                             |
-| :--:                      | :-----                                                                                  |
+| :--:                      | :-----:                                                                                  |
 | `timestamp`               | When the data was recorded.                                                             |
 | `company`                 | Company names.                                                                          |
 | `title`                   | Job title.                                                                              |
@@ -108,11 +108,12 @@ After data cleaning, the following is the chart of variables which are used in t
 | `race`                    | Race of the observations.                                                               |
 | `Education`               | Education background.                                                                   |
 
-\newpage
 
 ### Exploratory Data Analysis
 
 After data cleaning, I got 16937 observations and 14 variables, and I set `total yearly compensation` as the output of the analysis; the other 13 variables will be discussed in following analysis to know if they influence the salaries of these Data Science jobs. To figure out the relationships between the variables and build a model, I select `title` and `race` as two groups.
+
+\newpage
 
 ```{r, echo=FALSE, fig.height=3, fig.width=10, fig.cap="Salary vs Years at Company"}
 # Years at the Company
@@ -164,6 +165,8 @@ plot_grid(p3, p4, labels = NULL)
 
 According to the salary and education graphs, as the education background increasing, the slopes of most titles are increasing, there only "Recruiter" line shows the different trend. Additionally, "Analyst" and "Consultant" have no High School background, and most engineers have bachelor or master background. Overall, `title` influences `Education`, however, there is no difference of education background among diverse races.
 
+\newpage
+
 ```{r, echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Gender"} 
 # Gender
 p5 <- ggplot(data = salary) + 
@@ -192,7 +195,7 @@ In Figure 3, we can know that the relationship between `total yearly compensatio
 
 ### Correlation among Variables
 
-To fit the multilevel model, 
+Because of the large number of the `total yearly compensation` and the distributions of the variables are somehow skewed. To fit the multilevel model, I would like to change the variable to `log` as the new variables, for example, `log(education + 1)`, and build a new data frame.
 
 ```{r, echo=FALSE, include=FALSE}
 cor <- salary[, c(7:11, 13)]
@@ -209,39 +212,54 @@ cor$race <- salary$Race
 cor$salary <- log(salary$totalyearlycompensation + 1)
 ```
 
-```{r, echo=FALSE, warning=FALSE, fig.cap="Correlation Graph", fig.width=6, fig.height=6}
-corr <- cor(cor[,1:8], use="complete.obs")
-GGally::ggcorr(corr, method = c("everything", "pearson"), label = TRUE, label_alpha = TRUE)
-```
+By further consideration, there may be some variables have correlation except `title` and `race`; if there is a strong correlation between two variables, just one of them should be put into the final model. The following graph shows the number of variables' correlation:
 
+
+```{r, echo=FALSE, warning=FALSE, fig.cap="Correlation Graph", fig.width=8, fig.height=4}
+corr <- cor(cor[,1:8], use="complete.obs")
+corr_graph <- GGally::ggcorr(corr, method = c("everything", "pearson"), label = TRUE, label_alpha = TRUE)
+
+plot_grid(corr_graph, labels = NULL)
+```
+According to this graph, `years at company` and `years of experience` have the correlation at 0.7, which is considered as the largest number in this graph; also, 0.7 is close to 1. Besides, `base salary` & `year of experience` and `base salary` & `stock grant value` also show the large correlation at 0.6. As the result, these three variables are considered that they have the mutual influence, and I will keep `years of experience` and `stock grant value` in the multilevel model.
 
 ### Multilevel Model
 
+Based on the analysis above, I built this multilevel model:
+
 ```{r, warning=FALSE, message=FALSE}
-model_1 <- lmer(salary ~ yearsofexperience + yearsatcompany + cityid + education + gender
-              + (1 + yearsofexperience + yearsatcompany + cityid + education | title) 
+model_1 <- lmer(salary ~ yearsofexperience +stockgrantvalue + cityid + education + gender
+              + (1 + yearsofexperience + stockgrantvalue + cityid + education | title) 
               + (1 | race), 
               data = cor, REML = F)
 ```
 
-```{r echo=FALSE}
+The following is the summary of the model
+
+```{r include=FALSE}
 summary(model_1)
 anova(model_1)
 ```
 
 Fixed effects:
-                    Estimate Std. Error         df t value Pr(>|t|)    
-(Intercept)        1.167e+01  2.306e-01  7.922e+00  50.614 3.11e-11 ***
-yearsofexperience  3.855e-01  2.221e-02  8.862e+00  17.358 3.80e-08 ***
-yearsatcompany    -6.792e-02  1.049e-02  6.848e+00  -6.473 0.000376 ***
-cityid            -6.387e-02  2.037e-02  6.408e+00  -3.135 0.018503 *  
-education          7.778e-02  1.436e-02  9.135e+00   5.416 0.000403 ***
-gender             9.973e-02  1.764e-02  1.691e+04   5.655 1.59e-08 ***
+|                   |Estimate  |Std. Error|        df| t value  |Pr(>|t|)     |
+|------------------:|---------:|---------:|---------:|---------:|------------:|
+|(Intercept)        |1.143e+01 |9.984e-02 |6.404e+00 |114.484   |7.57e-12 *** |
+|yearsofexperience  |3.036e-01 |2.489e-02 |9.900e+00 |12.195    |2.76e-07 *** |
+|stockgrantvalue    |4.784e-02 |3.150e-03 |1.068e+01 |15.186    |1.43e-08 *** |
+|cityid             |-5.774e-02|9.895e-03 |4.476e+00 |-5.835    |0.003010 **  |
+|education          |6.336e-02 |1.379e-02 |1.009e+01 | 4.596    |0.000963 *** |
+|gender             |7.190e-02 |1.371e-02 |1.683e+04 | 5.244    |1.59e-07 *** |
 
 ### Model checking
-```{r echo=FALSE}
-qqmath(model_1)
-ranef(model_1)
+
+
+```{r echo=FALSE, message=FALSE, fig.cap="Correlation Graph", fig.width=8, fig.height=4}
+qq <- qqmath(model_1)
+ml_ranef <- ranef(model_1)
+
+plot_grid(qq, labels = NULL)
+plot_grid(ml_ranef, labels = NULL)
 ```
 
 \newpage
