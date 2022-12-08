@@ -37,7 +37,8 @@ In most universities, AI, Statistics and Data Science are some of the most popul
 
 As we always know, the job titles, locations of companies, experience level and other factors usually influence the amount of a person's salary. However, after COVID-19 came into everyone's life, some of jobs became remote to avoid direct contact, therefore, remote jobs may become one factor which influence the salaries. Remote work may decrease the salaries, because the efficiency will be reduced; sometimes, because of the extension of the work hour, the salaries will be increased. Besides, some small companies prefer to attract talents with high wages; at the same time, large companies have complete talents and do not care about the whereabouts of employees with low salaries.
 
-Therefore, multilevel model is needed to discover the effect of the factors. I divide the factors to two group: fixed effect factors(e.g. education, bonus, location) and random effect factors(title, race).
+Therefore, multilevel model is needed to discover the effect of the factors. As the assumption, I considered that because of the diverse titles, experience may influence much differently; and the gender and race may cause the same the same results. To figure this out, I divide the factors to two group: fixed effect factors(e.g. education, bonus, location) and random effect factors(title, race).
+
 
 \newpage
 
@@ -92,7 +93,7 @@ salary$gender <- as.numeric(salary$gender)
 After data cleaning, the following is the chart of variables which are used in this report:
 
 | Variables Names           | Explanation                                                                             |
-| :--:                      | :-----:                                                                                  |
+|---------:                 | :----------                                                                             |
 | `timestamp`               | When the data was recorded.                                                             |
 | `company`                 | Company names.                                                                          |
 | `title`                   | Job title.                                                                              |
@@ -193,7 +194,7 @@ plot_grid(p5, p6, labels = NULL)
 In Figure 3, we can know that the relationship between `total yearly compensation` and `gender` does not depend on titles, because of the similar trends of the plot; however, "Two or More" race has the decreasing slope which is different from other races. Therefore, I would like to say that the `race` types have affect on the relationship between `total yearly compensation` and `gender`.
 
 
-### Correlation among Variables
+### Correlation Checking
 
 Because of the large number of the `total yearly compensation` and the distributions of the variables are somehow skewed. To fit the multilevel model, I would like to change the variable to `log` as the new variables, for example, `log(education + 1)`, and build a new data frame.
 
@@ -225,25 +226,24 @@ According to this graph, `years at company` and `years of experience` have the c
 
 ### Multilevel Model
 
-Based on the analysis above, I built this multilevel model:
+Based on the analysis above, I built a multilevel model after fitting:
 
 ```{r, warning=FALSE, message=FALSE}
 model_1 <- lmer(salary ~ yearsofexperience +stockgrantvalue + cityid + education + gender
-              + (1 + yearsofexperience + stockgrantvalue + cityid + education | title) 
+              + (yearsofexperience + stockgrantvalue + cityid + education | title) 
               + (1 | race), 
               data = cor, REML = F)
 ```
 
-The following is the summary of the model
+The following is the summary of the model of fixed effects, the table shows that the probabilities are small enough to say that these variables are statistically significant at $\alpha$ = 0.05.
 
 ```{r include=FALSE}
 summary(model_1)
 anova(model_1)
 ```
 
-Fixed effects:
 |                   |Estimate  |Std. Error|        df| t value  |Pr(>|t|)     |
-|------------------:|---------:|---------:|---------:|---------:|------------:|
+|---------:         |---------:|--------: |-------:  |------:   |------------:|
 |(Intercept)        |1.143e+01 |9.984e-02 |6.404e+00 |114.484   |7.57e-12 *** |
 |yearsofexperience  |3.036e-01 |2.489e-02 |9.900e+00 |12.195    |2.76e-07 *** |
 |stockgrantvalue    |4.784e-02 |3.150e-03 |1.068e+01 |15.186    |1.43e-08 *** |
@@ -253,25 +253,60 @@ Fixed effects:
 
 ### Model checking
 
+After the model building, model checking is needed. I checked the multilevel by Q-Q plot, it shows that the mean of the standardized residuals is around 0 which considered as a normal distribution without skewed, and there is no extreme value, so this model is fitted well.
 
-```{r echo=FALSE, message=FALSE, fig.cap="Correlation Graph", fig.width=8, fig.height=4}
+Additionally, I used `ranef` to extract the conditional modes of the random effects(`title` and `race`). I move the completed table to the appendix.
+
+```{r echo=FALSE, message=FALSE, fig.cap="Correlation Graph", fig.width=6, fig.height=3}
 qq <- qqmath(model_1)
-ml_ranef <- ranef(model_1)
-
 plot_grid(qq, labels = NULL)
-plot_grid(ml_ranef, labels = NULL)
 ```
 
 \newpage
 
-
 ## Result
 
+As the conclusion of the report, I built a multilevel model with two random effects(`title` and `race`):
+$$ log(TotalCompensation + 1) = 11.43  +  0.303\times log(Experience + 1) + 0.048\times log(StockValue + 1) - 0.058\times$$ 
+$$ log(Location + 1) + 0.063\times log(Education + 1) + 0.072\times log(Gender + 1)$$
+
+In this model, there is only `cityid` has the negative correlation with `total yearly compensation`. According to the ranef graph above, I would like to check the details of the slope of the variables in the model. This is the model I used `Engineer` and `Asian` which has the largest observations in the data:
+$$ log(TotalCompensation + 1) = 11.66 + 0.29\times log(Experience + 1) + 0.058\times log(StockValue + 1) - 0.052\times$$ 
+$$log(Location + 1) + 0.043\times log(Education + 1) + 0.072\times log(Gender + 1)$$
+
+Compared with the original model, there is little change on the number of slopes, which means that asian engineers model has no dramatic different; when the `years of experience` increases 1 year, the log of `total yearly compensation` will increase by 0.29. Also, according to the `ranef` table, experience of titles of `Marketing`, `Recruiter`, `Resources` and `Sales` may influence more on the salary; the table shows that `Black` and `Hispanic` have the negative intercept, therefore, they may have less increase on `total yearly compensation` than others.
+
+## Discussion
+
+By the above multilevel model, we can know the relationships between variables and the total salaries, I choose `title` and `race` as two groups to fix other variables in the model. `Titles` and `races` do increase or decrease the change of one unit change on variables; for example, most data science engineers work at west coast states(e.g. CA, WA and so on) because of the location of silicon valley, but sales is distributed throughout the country. After the whole analysis of the report, to a certain extent, the result is different from my assumption. The `gender` which I considered as a variable that has large impact has a large probability by t-test in model summary, so it is not statistically significant. 
+
+```{r}
+yr_2 <- subset(cor, cor$yearsofexperience < 0.7)
+pre_yr2 <- predict(model_1, newdata = yr_2)
+exp(mean(pre_yr2))
+```
+
+Besides, to predict the data science first job yearly salary, I subset the people who have less than 2 years job experience, and made a prediction. The result shows their average total yearly compensation is around 130,617.6 USD, and this can provide reference for data science and statistics students who are about to graduate.
 
 
 \newpage
 
 ## Appendix
+
+```{r, echo=FALSE, fig.height=3, fig.width=6}
+ml_ranef <- ranef(model_1)
+ml_ranef
+```
+
+```{r, echo=FALSE, fig.height=6, fig.width=6, fig.cap="Distribution"}
+ggplot(cor, aes(salary)) +
+  geom_density() +
+  facet_wrap(~ title)
+
+ggplot(cor, aes(salary)) +
+  geom_density() +
+  facet_wrap(~ race)
+```
 
 ```{r, echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Experience Years"}
 # Year of experience
