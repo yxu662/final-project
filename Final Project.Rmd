@@ -257,9 +257,10 @@ After the model building, model checking is needed. I checked the multilevel by 
 
 Additionally, I used `ranef` to extract the conditional modes of the random effects(`title` and `race`). I move the completed table to the appendix.
 
-```{r echo=FALSE, message=FALSE, fig.cap="Correlation Graph", fig.width=6, fig.height=3}
+```{r echo=FALSE, message=FALSE, fig.cap="Correlation Graph", fig.width=5, fig.height=2.5}
+ml_plot <- plot(model_1)
 qq <- qqmath(model_1)
-plot_grid(qq, labels = NULL)
+plot_grid(qq,ml_plot, labels = NULL)
 ```
 
 \newpage
@@ -296,16 +297,6 @@ Besides, to predict the data science first job yearly salary, I subset the peopl
 ```{r, echo=FALSE, fig.height=3, fig.width=6}
 ml_ranef <- ranef(model_1)
 ml_ranef
-```
-
-```{r, echo=FALSE, fig.height=6, fig.width=6, fig.cap="Distribution"}
-ggplot(cor, aes(salary)) +
-  geom_density() +
-  facet_wrap(~ title)
-
-ggplot(cor, aes(salary)) +
-  geom_density() +
-  facet_wrap(~ race)
 ```
 
 ```{r, echo=FALSE, fig.height=3, fig.width=8, fig.cap="Salary vs Experience Years"}
@@ -423,7 +414,15 @@ p16 <- ggplot(data = salary) +
 plot_grid(p15, p16, labels = NULL)
 ```
 
+```{r, echo=FALSE, fig.height=6, fig.width=6, fig.cap="Distribution"}
+ggplot(cor, aes(salary)) +
+  geom_density() +
+  facet_wrap(~ title)
 
+ggplot(cor, aes(salary)) +
+  geom_density() +
+  facet_wrap(~ race)
+```
 
 
 
